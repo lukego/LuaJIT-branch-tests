@@ -17,7 +17,7 @@ d <- read.csv("bench.csv")
 ```{r kable, echo=FALSE}
 kable(
   col.names = c("LuaJIT", "Benchmark", "Mean running time (Gigacycles)", "Relative Standard Deviation (%)"),
-  summarize(group_by(d, luajit, benchmark),
+  summarize(group_by(d, benchmark, luajit),
             mean = mean(cycles)/1000000000,
             rsd = round(sd(cycles)/1000000000*100/mean, 2)))
 ```
