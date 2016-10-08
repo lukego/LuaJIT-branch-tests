@@ -1,0 +1,23 @@
+---
+title: "LuaJIT benchmark results"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r include=FALSE}
+library(dplyr)
+library(ggplot2)
+library(knitr)
+d <- read.csv("bench.csv")
+```
+
+```{r kable, echo=FALSE}
+kable(
+  col.names = c("LuaJIT", "Benchmark", "Mean running time (Gigacycles)", "Relative Standard Deviation (%)"),
+  summarize(group_by(d, luajit, benchmark),
+            mean = mean(cycles)/1000000000,
+            rsd = round(sd(cycles)/1000000000*100/mean, 2)))
+```
