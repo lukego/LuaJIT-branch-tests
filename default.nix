@@ -34,7 +34,7 @@ let benchmarkLuaJIT = luajitName: luajitSrc:
     name = "luajit-${luajitName}-benchmarks";
     src = testsuiteSrc;
     # Force consistent hardware
-    requiredHardwareFeatures = if hardware != null then [hardware] else [];
+    #requiredHardwareFeatures = if hardware != null then [hardware] else [];
     buildInputs = [ luajit linuxPackages.perf ];
     buildPhase = ''
       PATH=luajit/bin:$perf/bin:$PATH
@@ -50,7 +50,7 @@ let benchmarkLuaJIT = luajitName: luajitSrc:
           (cd bench;
            timeout -sKILL 60 \
              perf stat -x, -o ../result/$run/$benchmark.perf \
-             luajit $benchmark.lua 1>/dev/null) || true
+             luajit -e "math.randomseed($run) arg={} dofile('$benchmark.lua')" 1>/dev/null) || true
         done
       done
     '';
@@ -64,8 +64,8 @@ let benchmarkLuaJIT = luajitName: luajitSrc:
         for result in $resultdir/*.perf; do
           luajit=${luajit.version}
           benchmark=$(basename -s.perf -a $result)
-          instructions=$(awk -F, -e '$3 == "instructions" { print $4; }' $result)
-          cycles=$(      awk -F, -e '$3 == "cycles"       { print $4; }' $result)
+          instructions=$(awk -F, -e '$3 == "instructions" { print $1; }' $result)
+          cycles=$(      awk -F, -e '$3 == "cycles"       { print $1; }' $result)
           echo $luajit,$benchmark,$run,$instructions,$cycles >> $out/bench.csv
         done
       done
