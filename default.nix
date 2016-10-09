@@ -1,10 +1,14 @@
 { pkgs ? import <nixpkgs> {},
   luajitAname ? "unknown",
-  luajitAsrc,
   luajitBname,
-  luajitBsrc,
   luajitCname,
+  luajitDname,
+  luajitEname,
+  luajitAsrc,
+  luajitBsrc,
   luajitCsrc,
+  luajitDsrc,
+  luajitEsrc,
   testsuiteSrc,
   hardware ? null,
   benchmarkRuns ? 1 }:
@@ -34,7 +38,7 @@ let benchmarkLuaJIT = luajitName: luajitSrc:
     name = "luajit-${luajitName}-benchmarks";
     src = testsuiteSrc;
     # Force consistent hardware
-    #requiredHardwareFeatures = if hardware != null then [hardware] else [];
+    requiredSystemFeatures = if hardware != null then [hardware] else [];
     buildInputs = [ luajit linuxPackages.perf ];
     buildPhase = ''
       PATH=luajit/bin:$perf/bin:$PATH
@@ -83,6 +87,8 @@ rec {
   benchmarksA = (benchmarkLuaJIT luajitAname luajitAsrc);
   benchmarksB = (benchmarkLuaJIT luajitBname luajitBsrc);
   benchmarksC = (benchmarkLuaJIT luajitCname luajitCsrc);
+  benchmarksD = (benchmarkLuaJIT luajitDname luajitDsrc);
+  benchmarksE = (benchmarkLuaJIT luajitEname luajitEsrc);
 
   benchmarkResults = mkDerivation {
     name = "benchmark-results";
@@ -93,6 +99,7 @@ rec {
       mkdir -p $out/nix-support
       echo "luajit,benchmark,run,instructions,cycles" > bench.csv
       cat ${benchmarksA}/bench.csv ${benchmarksB}/bench.csv ${benchmarksC}/bench.csv \
+          ${benchmarksD}/bench.csv ${benchmarksE}/bench.csv \
           >> bench.csv
       cp bench.csv $out
       echo "file CSV $out/bench.csv" >> $out/nix-support/hydra-build-products
