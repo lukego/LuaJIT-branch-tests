@@ -1,6 +1,9 @@
 ---
 title: "LuaJIT benchmark results"
-output: html_document
+output:
+  html_document:
+    toc: true
+    theme: united
 ---
 
 ```{r setup, include=FALSE}
@@ -14,10 +17,70 @@ library(knitr)
 d <- read.csv("bench.csv")
 ```
 
+# Overview
+
+```{r include=FALSE}
+runs <- mean(summarize(group_by(d, benchmark, luajit), runs = n())$runs)
+```
+
+This is an automatically generated report showing benchmark results based on `r round(runs)` runs (iterations) per benchmark for each branch.
+
+# Graphs
+
+## Average relative performance of branches
+
+The relative performance of between branches is computed by taking each branch's average performance and normalizing it to overall average across all branches. If every branch has exactly the same performance then they will all have 100% relative performance, otherwise the faster branches have higher percentages.
+
+```{r echo=FALSE, fig.width=12}
+relative <- d %>%
+  group_by(benchmark) %>% mutate(overallmean = mean(cycles)) %>% ungroup() %>%
+  group_by(benchmark, luajit) %>% mutate(relativemean = overallmean / mean(cycles))
+
+ggplot(aes(y=relativemean, x=benchmark, fill=luajit), data=relative) +
+  geom_bar(stat = "identity", position = "dodge") +
+  theme(axis.text.x = element_text(angle=90)) +
+  scale_y_continuous(breaks=seq(0, 2, 0.2), limits=c(0,2), labels=scales::percent) +
+  ylab("relative performance") +
+  ggtitle("Comparative performance")
+```
+
+## Variation in performance of each branch
+
+The relative standard deviation (RSD) is a measure of how consistent benchmark results are when compared with other runs from the same branch. If the RSD is 0% then every run of the benchmark on the given branch performed exactly the same.
+
+```{r echo=FALSE, fig.width=12}
+rsd <- group_by(d, benchmark, luajit) %>% mutate(rsd=sd(cycles)/mean(cycles)) %>% ungroup()
+ggplot(aes(y=rsd, x=benchmark, fill=luajit), data=rsd) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_y_continuous(breaks=seq(0, 0.5, 0.1), limits=c(0,0.5), labels=scales::percent) +
+  theme(axis.text.x = element_text(angle=90)) +
+  ylab("relative standard deviation (RSD)")
+```
+
+## Instructions per cycle
+
+The number of instructions retired per cycle (IPC) provides some insight into how the CPU deals with the generated code. Low IPC may indicate hazards such as cache misses and branch mispredictions.
+
+```{r echo=FALSE, fig.width=12}
+ipc <- group_by(d, benchmark, luajit) %>% mutate(ipc=instructions/cycles) %>% ungroup()
+ggplot(aes(y=ipc, x=benchmark, fill=luajit), data=ipc) +
+  geom_bar(stat = "identity", position = "dodge") +
+  theme(axis.text.x = element_text(angle=90)) +
+  ylab("instructions/cycle") +
+  ggtitle("CPU instructions retired per cycle")
+```
+
+# Numeric
+
+## Summary statistics
+
+Numeric summary statistics can be useful for extra precision and comparison between different reports.
+
 ```{r kable, echo=FALSE}
 kable(
-  col.names = c("LuaJIT", "Benchmark", "Mean running time (Gigacycles)", "Relative Standard Deviation (%)"),
+  col.names = c("Benchmark", "LuaJIT branch", "Runs", "Mean running time (Gigacycles)", "Relative Standard Deviation (%)"),
   summarize(group_by(d, benchmark, luajit),
+            runs = n(),
             mean = mean(cycles)/1000000000,
             rsd = round(sd(cycles)/1000000000*100/mean, 2)))
 ```
