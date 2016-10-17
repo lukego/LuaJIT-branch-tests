@@ -80,13 +80,6 @@ let benchmarkLuaJIT = luajitName: luajitSrc:
   }; in
 
 rec {
-  # Build LuaJIT with -Werror to check for compile issues
-  luajit-compile-Werror = lib.overrideDerivation luajit (old: {
-    name = "luajit-Werror";
-    phases = "unpackPhase buildPhase";
-    NIX_CFLAGS_COMPILE = "-Werror";
-  });
-
   benchmarksA = (benchmarkLuaJIT luajitAname luajitAsrc);
   benchmarksB = (benchmarkLuaJIT luajitBname luajitBsrc);
   benchmarksC = (benchmarkLuaJIT luajitCname luajitCsrc);
