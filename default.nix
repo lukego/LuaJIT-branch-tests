@@ -47,15 +47,18 @@ let benchmarkLuaJIT = luajitName: luajitSrc:
         echo "Run $run"
         mkdir -p result/$run
         # Run each individual benchmark
-        for benchscript in bench/*.lua; do
-          benchmark=$(basename -s.lua -a $benchscript)
-          echo "running $benchmark"
-          # Execute with performance monitoring & time supervision
-          (cd bench;
-           timeout -sKILL 60 \
-             perf stat -x, -o ../result/$run/$benchmark.perf \
-             luajit -e "math.randomseed($run) arg={} dofile('$benchmark.lua')" 1>/dev/null) || true
-        done
+        cat bench/PARAM_x86_CI.txt |
+          (cd bench
+           while read benchmark params; do
+             echo "running $benchmark"
+             # Execute with performance monitoring & time supervision
+             # Note: discard stdout due to overwhelming output
+             timeout -sKILL 60 \
+               perf stat -x, -o ../result/$run/$benchmark.perf \
+               luajit -e "math.randomseed($run)" $benchmark.lua $params \
+                  > /dev/null || \
+                  rm result/$run/$benchmark.perf
+          done)
       done
     '';
     installPhase = ''
@@ -77,13 +80,6 @@ let benchmarkLuaJIT = luajitName: luajitSrc:
   }; in
 
 rec {
-  # Build LuaJIT with -Werror to check for compile issues
-  luajit-compile-Werror = lib.overrideDerivation luajit (old: {
-    name = "luajit-Werror";
-    phases = "unpackPhase buildPhase";
-    NIX_CFLAGS_COMPILE = "-Werror";
-  });
-
   benchmarksA = (benchmarkLuaJIT luajitAname luajitAsrc);
   benchmarksB = (benchmarkLuaJIT luajitBname luajitBsrc);
   benchmarksC = (benchmarkLuaJIT luajitCname luajitCsrc);
